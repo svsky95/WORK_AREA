@@ -1,0 +1,17 @@
+--
+SELECT utc1.table_name, utc1.column_name, utc1.data_type, utc1.data_length
+FROM user_tab_columns utc1
+WHERE utc1.table_name = 'TABLE_A'
+MINUS
+SELECT utc2.table_name, utc2.column_name, utc2.data_type, utc2.data_length
+FROM user_tab_columns utc2
+WHERE utc2.table_name = 'TABLE_B';
+
+select 'drop table '||table_name||' cascade constraints;' from all_tables where wner='TEST';
+select 'drop view ' || view_name||' cascade constraints;'||chr(13)||chr(10) from all_views  where wner='TEST';
+select 'drop index ' || index_name||' cascade constraints;'||chr(13)||chr(10) from all_indexes  where wner='TEST';
+select 'drop sequence ' || sequence_name||';'||chr(13)||chr(10) from all_sequences where sequence_owner='TEST';
+select 'drop procedure ' || object_name||';'||chr(13)||chr(10) from all_objects where object_type='PROCEDURE' and wner='TEST';
+select 'drop trigger ' || object_name||';'||chr(13)||chr(10) from all_objects where object_type='TRIGGER' and wner='TEST';
+select 'drop package ' || object_name||';'||chr(13)||chr(10) from all_objects where object_type='PACKAGE' and wner='TEST';
+
