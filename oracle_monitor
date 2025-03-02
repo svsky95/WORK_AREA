@@ -4,3 +4,38 @@ SELECT
     ROUND((SELECT VALUE/100 FROM V$SYSSTAT WHERE NAME = 'DB time') /
           (SELECT (SYSDATE - STARTUP_TIME) * 86400 FROM V$INSTANCE) * 100, 2) AS DB_TIME_PERCENTAGE
 FROM DUAL;
+
+--数据库告警日志
+select * from v$diag_info;
+
+
+set heading off
+select '5、查找前十条性能差的sql' from dual;
+set heading on
+SELECT * FROM (SELECT PARSING_USER_ID,EXECUTIONS,SORTS,COMMAND_TYPE,DISK_READS,SQL_TEXT FROM V$SQLAREA ORDER BY DISK_READS DESC) WHERE ROWNUM<10 ;
+
+
+set heading off
+select '6、等待时间最多的5个系统等待事件的获取' from dual;
+set heading on
+SELECT * FROM (SELECT * FROM V$SYSTEM_EVENT WHERE EVENT NOT LIKE 'SQL%' ORDER BY TOTAL_WAITS DESC) WHERE ROWNUM<=5;
+
+
+set heading off
+select '7、检查运行很久的SQL' from dual;
+set heading on
+COLUMN USERNAME FORMAT A12
+COLUMN OPNAME FORMAT A16
+COLUMN PROGRESS FORMAT A8
+SELECT USERNAME,SID,OPNAME,ROUND(SOFAR*100 / TOTALWORK,0) || '%' AS PROGRESS,TIME_REMAINING,SQL_TEXT FROM V$SESSION_LONGOPS , V$SQL WHERE TIME_REMAINING <> 0 AND SQL_ADDRESS=ADDRESS AND SQL_HASH_VALUE = HASH_VALUE;
+
+
+
+
+
+set heading off
+select '9、检查碎片程度高的表' from dual;
+set heading on
+SELECT segment_name table_name,COUNT(*) extents FROM dba_segments WHERE owner NOT IN
+('SYS', 'SYSTEM') GROUP BY segment_name HAVING COUNT(*)=(SELECT MAX(COUNT(*))
+FROM dba_segments GROUP BY segment_name);
