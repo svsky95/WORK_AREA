@@ -1,0 +1,140 @@
+副本集
+副本集就是有自动故障恢复功能的主从集群。
+主从集群和副本集最大的区别就是副本集没有固定的“主节点”；整个集群会选出一个“主节点”，当其挂掉后，
+又在剩下的从节点中选中其他节点为“主节点”，副本集总有一个活跃点(primary)
+和一个或多个备份节点(secondary)。
+
+1.rs.status()通过这个命令，可以查看各个节点的ip、角色已经是否正常
+2.rs.stepDown() 这个命令可以强制primary和standard节点角色互换，从而验证是否能够实现failover功能。
+3、db.printShardingStatus()
+
+Rollbacks操作发生在primary处理写操作，但其它成员没有成功的进行复制之前primary掉线时。当先前的primary开始复制时，则表现出rollback。如果操作复制到其它成员，该成员可用，并且可以和大多数的副本集连接，则没有rollback。
+
+
+
+1登录任意一台配置服务器，初始化配置副本集
+mongo --port 20000
+
+config = {
+    _id : "configs",
+     members : [
+         {_id : 0, host : "192.168.85.58:20000" },
+         {_id : 1, host : "192.168.85.59:20000" },
+         {_id : 2, host : "192.168.85.60:20000" }
+     ]
+ }
+ rs.initiate(config);
+ 
+
+mongo --port 27001
+use admin 
+config = {_id : "shard1",members : [{_id : 0, host : "192.168.85.58:27001" },{_id : 1, host : "192.168.85.59:27001" },{_id : 2, host : "192.168.85.60:27001", arbiterOnly: true }]}
+rs.initiate(config);
+rs.status();
+
+mongo --port 27002
+use admin 
+config = {_id : "shard2",members : [{_id : 0, host : "192.168.85.58:27002", arbiterOnly: true },{_id : 1, host : "192.168.85.59:27002" },{_id : 2, host : "192.168.85.60:27002" }]}
+rs.initiate(config);
+rs.status();
+
+mongo --port 27003
+use admin 
+config = {_id : "shard3",members : [{_id : 0, host : "192.168.85.58:27003"},{_id : 1, host : "192.168.85.59:27003", arbiterOnly: true  },{_id : 2, host : "192.168.85.60:27003" }]}
+rs.initiate(config);
+rs.status();
+
+
+
+====创建用户 插入数据
+ db.dropUser("admin");
+db.createUser({user:"Hoboson",pwd:"Hoboson", roles: [{role:"userAdminAnyDatabase", db:"admin"},{"role":"readWrite","db":"test"}]});
+
+
+db.dropUser(admin)
+db.createUser({user:"admin",pwd:"admin", roles: [{role:"userAdminAnyDatabase", db:"admin"},{"role":"readWrite","db":"test"}]});
+
+
+use   dzswjdb
+db.dropUser("dzswjdb");
+db.createUser({ user: "dzswjdb", pwd: "123456", roles: [ { role: "userAdminAnyDatabase", db: "admin" }]})
+db.updateUser("dzswjdb",{roles:[ { role: "userAdminAnyDatabase", db: "admin" },{ role: "readWrite", db: "dzswjdb" } ]});
+
+
+
+
+添加分片
+mongo --port 27017
+use admin
+给admin用户授权
+db.updateUser("admin",{roles:[ { role: "userAdminAnyDatabase", db: "admin" },{ role: "root", db: "admin" } ]});
+
+分片配置错误 更改
+sh.addShard("shard1/192.168.85.58:27001,192.168.85.59:27001,192.168.85.60:27001")
+sh.addShard("shard2/192.168.85.58:27002,192.168.85.59:27002,192.168.85.60:27002")
+sh.addShard("shard3/192.168.85.58:27003,192.168.85.59:27003,192.168.85.60:27003")
+
+for (var i = 1000; i <= 10011110; i++){db.table1.save({id:i,"test1":"testval1"});}
+
+use admin 
+db.auth('admin','root') 
+show users;
+ db.system.users.find();
+
+mongo --port 27001
+
+
+rs.remove("192.168.85.58:27001")
+rs.add("192.168.85.61:27001")
+
+
+rs.remove("192.168.85.58:27002")
+rs.add("192.168.85.61:27002")
+
+
+?设置副本节点可读
+
+#mongodb默认是从主节点读写数据的，副本节点上不允许读，需要设置副本节点可以读。
+
+?
+
+#在所有节点上进行设置
+
+修改root用户，mongodb用户家目录下的.mongorc.js文件
+
+如：
+
+vi?/root/.mongorc.js
+
+vi?/home/mongodb/.mongorc.js?
+
+添加一行：rs.slaveOk();
+
+修改完成后，重新登录mongo，发现副本节点可读了(当前会话不生效，需要重新登录才行）。
+
+第一种：重新初始化副本集
+repmore:PRIMARY> config = {_id:"repmore",members:[{_id:0,host:'127.0.0.1:27017',priority :2}]};   //删除节点 
+repmore:PRIMARY> rs.reconfig(config);  //使配置生效 
+repmore:PRIMARY> rs.status();  //查看节点状态 
+第二种，利用rs.add和rs.remove来添加删除节点
+repmore:PRIMARY> rs.add("127.0.0.1:27018");   //添加节点 
+repmore:PRIMARY> rs.remove("127.0.0.1:27018"); //删除节 
+
+
+注意，假如开启用户认证之后，初始化副本集时报错："errmsg" : "not authorized on admin to execute command { replSetInitiate: { _id: \"MyReplset\", members。需要赋予用户clusterManager角色。如：db.grantRolesToUser( "admin" , [ { role: "clusterManager", db: "admin" } ]);
+
+
+
+==========================添加副本集和仲裁节点=======================================
+rs.add("192.168.85.58:27001")
+rs.add("192.168.85.58:27003")
+
+添加仲裁节点
+添加成arbiter节点：
+rs.addArb("192.168.85.58:27002")
+============================删除副本集和仲裁节点=======================================
+rs.remove("id:port")
+
+
+
+
