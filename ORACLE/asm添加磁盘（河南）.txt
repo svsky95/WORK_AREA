@@ -1,0 +1,458 @@
+1、检查新增磁盘
+首先通过华为多路径软件查看新盘
+[root@haswj1dw1 ~]# upadmin
+UltraPath CLI #0 >show vlun
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Vlun ID  Disk            Name                         Lun WWN               Status  Capacity  Ctrl(Own/Work)    Array Name     Dev Lun ID  No. of Paths(Available/Total) 
+114    sddl   N_SVR_XNZJ_V_13V150111    628a6db100c8435c9c56408e00000272  Normal  500.00GB      1B/1B       N-ST-18500V3-04     626                  16/16             
+115    sddm   N_SVR_XNZJ_V_13V150112    628a6db100c8435c9c5640ab00000273  Normal  500.00GB      1C/1C       N-ST-18500V3-04     627                  16/16             
+116    sddn   N_SVR_XNZJ_V_13V150113    628a6db100c8435c9c5640d000000274  Normal  500.00GB      1D/1D       N-ST-18500V3-04     628                  16/16             
+117    sddo   N_SVR_XNZJ_V_13V150114    628a6db100c8435c9c56419f00000275  Normal  500.00GB      1A/1A       N-ST-18500V3-04     629                  16/16             
+118    sddp   N_SVR_XNZJ_V_13V150115    628a6db100c8435c9c5641be00000276  Normal  500.00GB      1B/1B       N-ST-18500V3-04     630                  16/16             
+119    sddq   N_SVR_XNZJ_V_13V150116    628a6db100c8435c9c5641dc00000277  Normal  500.00GB      1C/1C       N-ST-18500V3-04     631                  16/16             
+120    sddr   N_SVR_XNZJ_V_13V150117    628a6db100c8435c9c5641ff00000278  Normal  500.00GB      1D/1D       N-ST-18500V3-04     632                  16/16             
+121    sdds   N_SVR_XNZJ_V_13V150118    628a6db100c8435c9c56422300000279  Normal  500.00GB      1A/1A       N-ST-18500V3-04     633                  16/16             
+122    sddt   N_SVR_XNZJ_V_13V150119    628a6db100c8435c9c56423f0000027a  Normal  500.00GB      1B/1B       N-ST-18500V3-04     634                  16/16             
+123    sddu   N_SVR_XNZJ_V_13V150120    628a6db100c8435c9c56adc50000027b  Normal  500.00GB      1C/1C       N-ST-18500V3-04     635                  16/16
+
+通过操作系统确认
+[root@haswj1dw1 ~]# ls -l /dev/sd*
+......
+brw-rw---- 1 root disk 71,  48 Jun  5 13:55 /dev/sddl
+brw-rw---- 1 root disk 71,  64 Jun  5 13:55 /dev/sddm
+brw-rw---- 1 root disk 71,  80 Jun  5 13:55 /dev/sddn
+brw-rw---- 1 root disk 71,  96 Jun  5 13:55 /dev/sddo
+brw-rw---- 1 root disk 71, 112 Jun  5 13:55 /dev/sddp
+brw-rw---- 1 root disk 71, 128 Jun  5 13:55 /dev/sddq
+brw-rw---- 1 root disk 71, 144 Jun  5 13:55 /dev/sddr
+brw-rw---- 1 root disk 71, 160 Jun  5 13:55 /dev/sdds
+brw-rw---- 1 root disk 71, 176 Jun  5 13:55 /dev/sddt
+brw-rw---- 1 root disk 71, 192 Jun  5 13:55 /dev/sddu
+
+2、获取磁盘wwid号（两个节点都运行，比对一下盘符和盘号是否一致）
+[root@haswj1dw1 ~]# scsi_id -g /dev/sddl
+3628a6db100c8435c9c56408e00000272
+[root@haswj1dw2 ~]# scsi_id -g /dev/sddl
+3628a6db100c8435c9c56408e00000272
+
+3、查看原有asm磁盘情况
+su - grid
+sqlplus / as sysasm
+SQL> set linesize 500
+SQL> col path for a50
+SQL> col name for a20
+SQL> select GROUP_NUMBER,NAME,DISK_NUMBER,HEADER_STATUS,STATE,PATH,TOTAL_MB from v$asm_disk order by path;
+
+GROUP_NUMBER NAME		  DISK_NUMBER HEADER_STATU STATE    PATH						 TOTAL_MB
+------------ -------------------- ----------- ------------ -------- -------------------------------------------------- ----------
+	   3 FRA_0000			    0 MEMBER	   NORMAL   /dev/asm-diskaa					   512000
+	   3 FRA_0001			    1 MEMBER	   NORMAL   /dev/asm-diskab					   512000
+	   2 DATA_0000			    0 MEMBER	   NORMAL   /dev/asm-diskac					   512000
+	   2 DATA_0001			    1 MEMBER	   NORMAL   /dev/asm-diskad					   512000
+	   2 DATA_0002			    2 MEMBER	   NORMAL   /dev/asm-diskae					   512000
+	   2 DATA_0003			    3 MEMBER	   NORMAL   /dev/asm-diskaf					   512000
+	   2 DATA_0004			    4 MEMBER	   NORMAL   /dev/asm-diskag					   512000
+	   2 DATA_0005			    5 MEMBER	   NORMAL   /dev/asm-diskah					   512000
+	   2 DATA_0006			    6 MEMBER	   NORMAL   /dev/asm-diskai					   512000
+	   2 DATA_0007			    7 MEMBER	   NORMAL   /dev/asm-diskaj					   512000
+	   2 DATA_0008			    8 MEMBER	   NORMAL   /dev/asm-diskak					   512000
+
+GROUP_NUMBER NAME		  DISK_NUMBER HEADER_STATU STATE    PATH						 TOTAL_MB
+------------ -------------------- ----------- ------------ -------- -------------------------------------------------- ----------
+	   2 DATA_0009			    9 MEMBER	   NORMAL   /dev/asm-diskal					   512000
+	   2 DATA_0010			   10 MEMBER	   NORMAL   /dev/asm-diskam					   512000
+	   2 DATA_0011			   11 MEMBER	   NORMAL   /dev/asm-diskan					   512000
+	   2 DATA_0012			   12 MEMBER	   NORMAL   /dev/asm-diskao					   512000
+	   2 DATA_0013			   13 MEMBER	   NORMAL   /dev/asm-diskap					   512000
+	   2 DATA_0014			   14 MEMBER	   NORMAL   /dev/asm-diskaq					   512000
+	   2 DATA_0015			   15 MEMBER	   NORMAL   /dev/asm-diskar					   512000
+	   2 DATA_0016			   16 MEMBER	   NORMAL   /dev/asm-diskas					   512000
+	   2 DATA_0017			   17 MEMBER	   NORMAL   /dev/asm-diskat					   512000
+	   2 DATA_0018			   18 MEMBER	   NORMAL   /dev/asm-diskau					   512000
+	   2 DATA_0019			   19 MEMBER	   NORMAL   /dev/asm-diskav					   512000
+
+GROUP_NUMBER NAME		  DISK_NUMBER HEADER_STATU STATE    PATH						 TOTAL_MB
+------------ -------------------- ----------- ------------ -------- -------------------------------------------------- ----------
+	   2 DATA_0020			   20 MEMBER	   NORMAL   /dev/asm-diskaw					   512000
+	   2 DATA_0021			   21 MEMBER	   NORMAL   /dev/asm-diskax					   512000
+	   2 DATA_0022			   22 MEMBER	   NORMAL   /dev/asm-diskay					   512000
+	   2 DATA_0023			   23 MEMBER	   NORMAL   /dev/asm-diskaz					   512000
+	   2 DATA_0024			   24 MEMBER	   NORMAL   /dev/asm-diskba					   512000
+	   2 DATA_0025			   25 MEMBER	   NORMAL   /dev/asm-diskbb					   512000
+	   2 DATA_0026			   26 MEMBER	   NORMAL   /dev/asm-diskbc					   512000
+	   2 DATA_0027			   27 MEMBER	   NORMAL   /dev/asm-diskbd					   512000
+	   2 DATA_0028			   28 MEMBER	   NORMAL   /dev/asm-diskbe					   512000
+	   2 DATA_0029			   29 MEMBER	   NORMAL   /dev/asm-diskbf					   512000
+	   2 DATA_0030			   30 MEMBER	   NORMAL   /dev/asm-diskbg					   512000
+
+GROUP_NUMBER NAME		  DISK_NUMBER HEADER_STATU STATE    PATH						 TOTAL_MB
+------------ -------------------- ----------- ------------ -------- -------------------------------------------------- ----------
+	   2 DATA_0031			   31 MEMBER	   NORMAL   /dev/asm-diskbh					   512000
+	   2 DATA_0032			   32 MEMBER	   NORMAL   /dev/asm-diskbi					   512000
+	   2 DATA_0033			   33 MEMBER	   NORMAL   /dev/asm-diskbj					   512000
+	   2 DATA_0034			   34 MEMBER	   NORMAL   /dev/asm-diskbk					   512000
+	   2 DATA_0035			   35 MEMBER	   NORMAL   /dev/asm-diskbl					   512000
+	   2 DATA_0036			   36 MEMBER	   NORMAL   /dev/asm-diskbm					   512000
+	   2 DATA_0037			   37 MEMBER	   NORMAL   /dev/asm-diskbn					   512000
+	   2 DATA_0038			   38 MEMBER	   NORMAL   /dev/asm-diskbo					   512000
+	   2 DATA_0039			   39 MEMBER	   NORMAL   /dev/asm-diskbp					   512000
+	   2 DATA_0040			   40 MEMBER	   NORMAL   /dev/asm-diskbq					   512000
+	   2 DATA_0041			   41 MEMBER	   NORMAL   /dev/asm-diskbr					   512000
+
+GROUP_NUMBER NAME		  DISK_NUMBER HEADER_STATU STATE    PATH						 TOTAL_MB
+------------ -------------------- ----------- ------------ -------- -------------------------------------------------- ----------
+	   2 DATA_0042			   42 MEMBER	   NORMAL   /dev/asm-diskbs					   512000
+	   2 DATA_0043			   43 MEMBER	   NORMAL   /dev/asm-diskbt					   512000
+	   2 DATA_0044			   44 MEMBER	   NORMAL   /dev/asm-diskbu					   512000
+	   2 DATA_0045			   45 MEMBER	   NORMAL   /dev/asm-diskbv					   512000
+	   2 DATA_0046			   46 MEMBER	   NORMAL   /dev/asm-diskbw					   512000
+	   2 DATA_0047			   47 MEMBER	   NORMAL   /dev/asm-diskbx					   512000
+	   2 DATA_0048			   48 MEMBER	   NORMAL   /dev/asm-diskby					   512000
+	   2 DATA_0049			   49 MEMBER	   NORMAL   /dev/asm-diskbz					   512000
+	   2 DATA_0050			   50 MEMBER	   NORMAL   /dev/asm-diskca					   512000
+	   2 DATA_0051			   51 MEMBER	   NORMAL   /dev/asm-diskcb					   512000
+	   2 DATA_0052			   52 MEMBER	   NORMAL   /dev/asm-diskcc					   512000
+
+GROUP_NUMBER NAME		  DISK_NUMBER HEADER_STATU STATE    PATH						 TOTAL_MB
+------------ -------------------- ----------- ------------ -------- -------------------------------------------------- ----------
+	   2 DATA_0053			   53 MEMBER	   NORMAL   /dev/asm-diskcd					   512000
+	   2 DATA_0054			   54 MEMBER	   NORMAL   /dev/asm-diskce					   512000
+	   2 DATA_0055			   55 MEMBER	   NORMAL   /dev/asm-diskcf					   512000
+	   2 DATA_0056			   56 MEMBER	   NORMAL   /dev/asm-diskcg					   512000
+	   2 DATA_0057			   57 MEMBER	   NORMAL   /dev/asm-diskch					   512000
+	   2 DATA_0058			   58 MEMBER	   NORMAL   /dev/asm-diskci					   512000
+	   2 DATA_0059			   59 MEMBER	   NORMAL   /dev/asm-diskcj					   512000
+	   2 DATA_0060			   60 MEMBER	   NORMAL   /dev/asm-diskck					   512000
+	   2 DATA_0061			   61 MEMBER	   NORMAL   /dev/asm-diskcl					   512000
+	   2 DATA_0062			   62 MEMBER	   NORMAL   /dev/asm-diskcm					   512000
+	   2 DATA_0063			   63 MEMBER	   NORMAL   /dev/asm-diskcn					   512000
+
+GROUP_NUMBER NAME		  DISK_NUMBER HEADER_STATU STATE    PATH						 TOTAL_MB
+------------ -------------------- ----------- ------------ -------- -------------------------------------------------- ----------
+	   2 DATA_0064			   64 MEMBER	   NORMAL   /dev/asm-diskco					   512000
+	   2 DATA_0065			   65 MEMBER	   NORMAL   /dev/asm-diskcp					   512000
+	   2 DATA_0066			   66 MEMBER	   NORMAL   /dev/asm-diskcq					   512000
+	   2 DATA_0067			   67 MEMBER	   NORMAL   /dev/asm-diskcr					   512000
+	   2 DATA_0068			   68 MEMBER	   NORMAL   /dev/asm-diskcs					   512000
+	   2 DATA_0069			   69 MEMBER	   NORMAL   /dev/asm-diskct					   512000
+	   2 DATA_0070			   70 MEMBER	   NORMAL   /dev/asm-diskcu					   512000
+	   2 DATA_0071			   71 MEMBER	   NORMAL   /dev/asm-diskcv					   512000
+	   2 DATA_0072			   72 MEMBER	   NORMAL   /dev/asm-diskcw					   512000
+	   2 DATA_0073			   73 MEMBER	   NORMAL   /dev/asm-diskcx					   512000
+	   2 DATA_0074			   74 MEMBER	   NORMAL   /dev/asm-diskcy					   512000
+
+GROUP_NUMBER NAME		  DISK_NUMBER HEADER_STATU STATE    PATH						 TOTAL_MB
+------------ -------------------- ----------- ------------ -------- -------------------------------------------------- ----------
+	   2 DATA_0075			   75 MEMBER	   NORMAL   /dev/asm-diskcz					   512000
+	   2 DATA_0076			   76 MEMBER	   NORMAL   /dev/asm-diskda					   512000
+	   2 DATA_0077			   77 MEMBER	   NORMAL   /dev/asm-diskdb					   512000
+	   2 DATA_0078			   78 MEMBER	   NORMAL   /dev/asm-diskdc					   512000
+	   2 DATA_0079			   79 MEMBER	   NORMAL   /dev/asm-diskdd					   512000
+	   2 DATA_0080			   80 MEMBER	   NORMAL   /dev/asm-diskde					   512000
+	   2 DATA_0081			   81 MEMBER	   NORMAL   /dev/asm-diskdf					   512000
+	   2 DATA_0082			   82 MEMBER	   NORMAL   /dev/asm-diskdg					   512000
+	   2 DATA_0083			   83 MEMBER	   NORMAL   /dev/asm-diskdh					   512000
+	   1 CRS_0000			    0 MEMBER	   NORMAL   /dev/asm-diskdi					     5120
+	   1 CRS_0001			    1 MEMBER	   NORMAL   /dev/asm-diskdj					     5120
+
+GROUP_NUMBER NAME		  DISK_NUMBER HEADER_STATU STATE    PATH						 TOTAL_MB
+------------ -------------------- ----------- ------------ -------- -------------------------------------------------- ----------
+	   1 CRS_0002			    2 MEMBER	   NORMAL   /dev/asm-diskdk					     5120
+	   2 DATA_0084			   84 MEMBER	   NORMAL   /dev/asm-diskg					   512000
+	   2 DATA_0085			   85 MEMBER	   NORMAL   /dev/asm-diskh					   512000
+	   2 DATA_0086			   86 MEMBER	   NORMAL   /dev/asm-diski					   512000
+	   2 DATA_0087			   87 MEMBER	   NORMAL   /dev/asm-diskj					   512000
+	   2 DATA_0088			   88 MEMBER	   NORMAL   /dev/asm-diskk					   512000
+	   2 DATA_0089			   89 MEMBER	   NORMAL   /dev/asm-diskl					   512000
+	   2 DATA_0090			   90 MEMBER	   NORMAL   /dev/asm-diskm					   512000
+	   2 DATA_0091			   91 MEMBER	   NORMAL   /dev/asm-diskn					   512000
+	   2 DATA_0092			   92 MEMBER	   NORMAL   /dev/asm-disko					   512000
+	   2 DATA_0093			   93 MEMBER	   NORMAL   /dev/asm-diskp					   512000
+
+GROUP_NUMBER NAME		  DISK_NUMBER HEADER_STATU STATE    PATH						 TOTAL_MB
+------------ -------------------- ----------- ------------ -------- -------------------------------------------------- ----------
+	   2 DATA_0094			   94 MEMBER	   NORMAL   /dev/asm-diskq					   512000
+	   2 DATA_0095			   95 MEMBER	   NORMAL   /dev/asm-diskr					   512000
+	   2 DATA_0096			   96 MEMBER	   NORMAL   /dev/asm-disks					   512000
+	   2 DATA_0097			   97 MEMBER	   NORMAL   /dev/asm-diskt					   512000
+	   2 DATA_0098			   98 MEMBER	   NORMAL   /dev/asm-disku					   512000
+	   2 DATA_0099			   99 MEMBER	   NORMAL   /dev/asm-diskv					   512000
+	   2 DATA_0100			  100 MEMBER	   NORMAL   /dev/asm-diskw					   512000
+	   2 DATA_0101			  101 MEMBER	   NORMAL   /dev/asm-diskx					   512000
+	   2 DATA_0102			  102 MEMBER	   NORMAL   /dev/asm-disky					   512000
+	   2 DATA_0103			  103 MEMBER	   NORMAL   /dev/asm-diskz					   512000
+
+109 rows selected.
+
+确认当前最大路径为/dev/asm-diskdk
+
+4、查看当前udev配置
+[root@haswj1dw1 ~]# cat /etc/udev/rules.d/99-oracle-asmdevices.rules 
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288eb7100000090", NAME="asm-diskg", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ec0600000091", NAME="asm-diskh", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ec5100000092", NAME="asm-diski", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288eca200000093", NAME="asm-diskj", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288eccb00000094", NAME="asm-diskk", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ed1a00000095", NAME="asm-diskl", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288eda700000096", NAME="asm-diskm", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288edd100000097", NAME="asm-diskn", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288edf500000098", NAME="asm-disko", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ee1200000099", NAME="asm-diskp", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ee340000009a", NAME="asm-diskq", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ee590000009b", NAME="asm-diskr", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ee7b0000009c", NAME="asm-disks", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ee9b0000009d", NAME="asm-diskt", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288eeba0000009e", NAME="asm-disku", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288eedc0000009f", NAME="asm-diskv", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ef01000000a0", NAME="asm-diskw", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ef26000000a1", NAME="asm-diskx", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f009000000a2", NAME="asm-disky", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f07b000000a3", NAME="asm-diskz", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f0eb000000a4", NAME="asm-diskaa", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f2be000000a5", NAME="asm-diskab", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f321000000a6", NAME="asm-diskac", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f344000000a7", NAME="asm-diskad", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f368000000a8", NAME="asm-diskae", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f383000000a9", NAME="asm-diskaf", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f3af000000aa", NAME="asm-diskag", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f3e6000000ab", NAME="asm-diskah", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f407000000ac", NAME="asm-diskai", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f438000000ad", NAME="asm-diskaj", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f462000000ae", NAME="asm-diskak", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f4a5000000af", NAME="asm-diskal", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f513000000b0", NAME="asm-diskam", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f5fa000000b1", NAME="asm-diskan", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f615000000b2", NAME="asm-diskao", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f643000000b3", NAME="asm-diskap", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f699000000b4", NAME="asm-diskaq", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f79a000000b5", NAME="asm-diskar", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f838000000b6", NAME="asm-diskas", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f85d000000b7", NAME="asm-diskat", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f881000000b8", NAME="asm-diskau", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f8b9000000b9", NAME="asm-diskav", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f8dd000000ba", NAME="asm-diskaw", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f902000000bb", NAME="asm-diskax", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f931000000bc", NAME="asm-diskay", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288f952000000bd", NAME="asm-diskaz", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fa44000000be", NAME="asm-diskba", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fa8f000000bf", NAME="asm-diskbb", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fb26000000c0", NAME="asm-diskbc", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fbff000000c1", NAME="asm-diskbd", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fc24000000c2", NAME="asm-diskbe", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fc48000000c3", NAME="asm-diskbf", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fc68000000c4", NAME="asm-diskbg", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fc85000000c5", NAME="asm-diskbh", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fcf1000000c6", NAME="asm-diskbi", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fda0000000c7", NAME="asm-diskbj", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fdc4000000c8", NAME="asm-diskbk", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fde1000000c9", NAME="asm-diskbl", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fe0e000000ca", NAME="asm-diskbm", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fe31000000cb", NAME="asm-diskbn", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288fe5f000000cc", NAME="asm-diskbo", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ff40000000cd", NAME="asm-diskbp", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc288ffaa000000ce", NAME="asm-diskbq", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc289004a000000cf", NAME="asm-diskbr", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890096000000d0", NAME="asm-diskbs", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28900cb000000d1", NAME="asm-diskbt", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28900eb000000d2", NAME="asm-diskbu", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28901c6000000d3", NAME="asm-diskbv", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28901e9000000d4", NAME="asm-diskbw", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890207000000d5", NAME="asm-diskbx", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890231000000d6", NAME="asm-diskby", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890250000000d7", NAME="asm-diskbz", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890274000000d8", NAME="asm-diskca", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc289029a000000d9", NAME="asm-diskcb", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28902b8000000da", NAME="asm-diskcc", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28902e5000000db", NAME="asm-diskcd", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28903c2000000dc", NAME="asm-diskce", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc289041e000000dd", NAME="asm-diskcf", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890488000000de", NAME="asm-diskcg", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc289054e000000df", NAME="asm-diskch", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28905d1000000e0", NAME="asm-diskci", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28905fd000000e1", NAME="asm-diskcj", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890664000000e2", NAME="asm-diskck", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890688000000e3", NAME="asm-diskcl", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28906b1000000e4", NAME="asm-diskcm", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28906d3000000e5", NAME="asm-diskcn", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28906f8000000e6", NAME="asm-diskco", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc289071c000000e7", NAME="asm-diskcp", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890748000000e8", NAME="asm-diskcq", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890766000000e9", NAME="asm-diskcr", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890784000000ea", NAME="asm-diskcs", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28907a5000000eb", NAME="asm-diskct", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28907d5000000ec", NAME="asm-diskcu", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890823000000ed", NAME="asm-diskcv", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890890000000ee", NAME="asm-diskcw", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28908ff000000ef", NAME="asm-diskcx", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc289096f000000f0", NAME="asm-diskcy", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc289098e000000f1", NAME="asm-diskcz", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28909cb000000f2", NAME="asm-diskda", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc28909ea000000f3", NAME="asm-diskdb", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890a19000000f4", NAME="asm-diskdc", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890a36000000f5", NAME="asm-diskdd", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890a61000000f6", NAME="asm-diskde", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890a90000000f7", NAME="asm-diskdf", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890aaf000000f8", NAME="asm-diskdg", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2890acc000000f9", NAME="asm-diskdh", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2ad014c000000fa", NAME="asm-diskdi", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2ad023a000000fb", NAME="asm-diskdj", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name", RESULT=="3628a6db100c8435cc2ad02e8000000fc", NAME="asm-diskdk", OWNER="grid", GROUP="asmadmin", MODE="0660"
+
+印证了asm当前最大路径为/dev/asm-disdk
+
+可以通过命令查看设备文件
+[root@haswj1dw1 ~]# ls -l /dev/asm-disk*
+brw-rw---- 1 grid asmadmin 65, 160 Jun  5 21:58 /dev/asm-diskaa
+brw-rw---- 1 grid asmadmin 65, 176 Jun  5 14:20 /dev/asm-diskab
+brw-rw---- 1 grid asmadmin 65, 192 Jun  5 23:00 /dev/asm-diskac
+brw-rw---- 1 grid asmadmin 65, 208 Jun  5 23:00 /dev/asm-diskad
+brw-rw---- 1 grid asmadmin 65, 224 Jun  5 23:00 /dev/asm-diskae
+brw-rw---- 1 grid asmadmin 65, 240 Jun  5 23:00 /dev/asm-diskaf
+brw-rw---- 1 grid asmadmin 66,   0 Jun  5 23:00 /dev/asm-diskag
+brw-rw---- 1 grid asmadmin 66,  16 Jun  5 23:00 /dev/asm-diskah
+brw-rw---- 1 grid asmadmin 66,  32 Jun  5 23:00 /dev/asm-diskai
+brw-rw---- 1 grid asmadmin 66,  48 Jun  5 23:00 /dev/asm-diskaj
+brw-rw---- 1 grid asmadmin 66,  64 Jun  5 23:00 /dev/asm-diskak
+brw-rw---- 1 grid asmadmin 66,  80 Jun  5 23:00 /dev/asm-diskal
+brw-rw---- 1 grid asmadmin 66,  96 Jun  5 23:00 /dev/asm-diskam
+brw-rw---- 1 grid asmadmin 66, 112 Jun  5 23:00 /dev/asm-diskan
+brw-rw---- 1 grid asmadmin 66, 128 Jun  5 23:00 /dev/asm-diskao
+brw-rw---- 1 grid asmadmin 66, 144 Jun  5 23:00 /dev/asm-diskap
+brw-rw---- 1 grid asmadmin 66, 160 Jun  5 23:00 /dev/asm-diskaq
+brw-rw---- 1 grid asmadmin 66, 176 Jun  5 23:00 /dev/asm-diskar
+brw-rw---- 1 grid asmadmin 66, 192 Jun  5 23:00 /dev/asm-diskas
+brw-rw---- 1 grid asmadmin 66, 208 Jun  5 23:00 /dev/asm-diskat
+brw-rw---- 1 grid asmadmin 66, 224 Jun  5 23:00 /dev/asm-diskau
+brw-rw---- 1 grid asmadmin 66, 240 Jun  5 23:00 /dev/asm-diskav
+brw-rw---- 1 grid asmadmin 67,   0 Jun  5 23:00 /dev/asm-diskaw
+brw-rw---- 1 grid asmadmin 67,  16 Jun  5 23:00 /dev/asm-diskax
+brw-rw---- 1 grid asmadmin 67,  32 Jun  5 23:00 /dev/asm-diskay
+brw-rw---- 1 grid asmadmin 67,  48 Jun  5 23:00 /dev/asm-diskaz
+brw-rw---- 1 grid asmadmin 67,  64 Jun  5 23:00 /dev/asm-diskba
+brw-rw---- 1 grid asmadmin 67,  80 Jun  5 23:00 /dev/asm-diskbb
+brw-rw---- 1 grid asmadmin 67,  96 Jun  5 23:00 /dev/asm-diskbc
+brw-rw---- 1 grid asmadmin 67, 112 Jun  5 23:00 /dev/asm-diskbd
+brw-rw---- 1 grid asmadmin 67, 128 Jun  5 23:00 /dev/asm-diskbe
+brw-rw---- 1 grid asmadmin 67, 144 Jun  5 23:00 /dev/asm-diskbf
+brw-rw---- 1 grid asmadmin 67, 160 Jun  5 23:00 /dev/asm-diskbg
+brw-rw---- 1 grid asmadmin 67, 176 Jun  5 23:00 /dev/asm-diskbh
+brw-rw---- 1 grid asmadmin 67, 192 Jun  5 23:00 /dev/asm-diskbi
+brw-rw---- 1 grid asmadmin 67, 208 Jun  5 23:00 /dev/asm-diskbj
+brw-rw---- 1 grid asmadmin 67, 224 Jun  5 23:00 /dev/asm-diskbk
+brw-rw---- 1 grid asmadmin 67, 240 Jun  5 23:00 /dev/asm-diskbl
+brw-rw---- 1 grid asmadmin 68,   0 Jun  5 23:00 /dev/asm-diskbm
+brw-rw---- 1 grid asmadmin 68,  16 Jun  5 23:00 /dev/asm-diskbn
+brw-rw---- 1 grid asmadmin 68,  32 Jun  5 23:00 /dev/asm-diskbo
+brw-rw---- 1 grid asmadmin 68,  48 Jun  5 23:00 /dev/asm-diskbp
+brw-rw---- 1 grid asmadmin 68,  64 Jun  5 23:00 /dev/asm-diskbq
+brw-rw---- 1 grid asmadmin 68,  80 Jun  5 23:00 /dev/asm-diskbr
+brw-rw---- 1 grid asmadmin 68,  96 Jun  5 23:00 /dev/asm-diskbs
+brw-rw---- 1 grid asmadmin 68, 112 Jun  5 23:00 /dev/asm-diskbt
+brw-rw---- 1 grid asmadmin 68, 128 Jun  5 23:00 /dev/asm-diskbu
+brw-rw---- 1 grid asmadmin 68, 144 Jun  5 23:00 /dev/asm-diskbv
+brw-rw---- 1 grid asmadmin 68, 160 Jun  5 23:00 /dev/asm-diskbw
+brw-rw---- 1 grid asmadmin 68, 176 Jun  5 23:00 /dev/asm-diskbx
+brw-rw---- 1 grid asmadmin 68, 192 Jun  5 23:00 /dev/asm-diskby
+brw-rw---- 1 grid asmadmin 68, 208 Jun  5 23:00 /dev/asm-diskbz
+brw-rw---- 1 grid asmadmin 68, 224 Jun  5 23:00 /dev/asm-diskca
+brw-rw---- 1 grid asmadmin 68, 240 Jun  5 23:00 /dev/asm-diskcb
+brw-rw---- 1 grid asmadmin 69,   0 Jun  5 23:00 /dev/asm-diskcc
+brw-rw---- 1 grid asmadmin 69,  16 Jun  5 23:00 /dev/asm-diskcd
+brw-rw---- 1 grid asmadmin 69,  32 Jun  5 23:00 /dev/asm-diskce
+brw-rw---- 1 grid asmadmin 69,  48 Jun  5 23:00 /dev/asm-diskcf
+brw-rw---- 1 grid asmadmin 69,  64 Jun  5 23:00 /dev/asm-diskcg
+brw-rw---- 1 grid asmadmin 69,  80 Jun  5 23:00 /dev/asm-diskch
+brw-rw---- 1 grid asmadmin 69,  96 Jun  5 23:00 /dev/asm-diskci
+brw-rw---- 1 grid asmadmin 69, 112 Jun  5 23:00 /dev/asm-diskcj
+brw-rw---- 1 grid asmadmin 69, 128 Jun  5 23:00 /dev/asm-diskck
+brw-rw---- 1 grid asmadmin 69, 144 Jun  5 23:00 /dev/asm-diskcl
+brw-rw---- 1 grid asmadmin 69, 160 Jun  5 23:00 /dev/asm-diskcm
+brw-rw---- 1 grid asmadmin 69, 176 Jun  5 23:00 /dev/asm-diskcn
+brw-rw---- 1 grid asmadmin 69, 192 Jun  5 23:00 /dev/asm-diskco
+brw-rw---- 1 grid asmadmin 69, 208 Jun  5 23:00 /dev/asm-diskcp
+brw-rw---- 1 grid asmadmin 69, 224 Jun  5 23:00 /dev/asm-diskcq
+brw-rw---- 1 grid asmadmin 69, 240 Jun  5 23:00 /dev/asm-diskcr
+brw-rw---- 1 grid asmadmin 70,   0 Jun  5 23:00 /dev/asm-diskcs
+brw-rw---- 1 grid asmadmin 70,  16 Jun  5 23:00 /dev/asm-diskct
+brw-rw---- 1 grid asmadmin 70,  32 Jun  5 23:00 /dev/asm-diskcu
+brw-rw---- 1 grid asmadmin 70,  48 Jun  5 23:00 /dev/asm-diskcv
+brw-rw---- 1 grid asmadmin 70,  64 Jun  5 23:00 /dev/asm-diskcw
+brw-rw---- 1 grid asmadmin 70,  80 Jun  5 23:00 /dev/asm-diskcx
+brw-rw---- 1 grid asmadmin 70,  96 Jun  5 23:00 /dev/asm-diskcy
+brw-rw---- 1 grid asmadmin 70, 112 Jun  5 23:00 /dev/asm-diskcz
+brw-rw---- 1 grid asmadmin 70, 128 Jun  5 23:00 /dev/asm-diskda
+brw-rw---- 1 grid asmadmin 70, 144 Jun  5 23:00 /dev/asm-diskdb
+brw-rw---- 1 grid asmadmin 70, 160 Jun  5 23:00 /dev/asm-diskdc
+brw-rw---- 1 grid asmadmin 70, 176 Jun  5 23:00 /dev/asm-diskdd
+brw-rw---- 1 grid asmadmin 70, 192 Jun  5 23:00 /dev/asm-diskde
+brw-rw---- 1 grid asmadmin 70, 208 Jun  5 23:00 /dev/asm-diskdf
+brw-rw---- 1 grid asmadmin 70, 224 Jun  5 23:00 /dev/asm-diskdg
+brw-rw---- 1 grid asmadmin 70, 240 Jun  5 23:00 /dev/asm-diskdh
+brw-rw---- 1 grid asmadmin 71,   0 Jun  5 23:00 /dev/asm-diskdi
+brw-rw---- 1 grid asmadmin 71,  16 Jun  5 23:00 /dev/asm-diskdj
+brw-rw---- 1 grid asmadmin 71,  32 Jun  5 23:00 /dev/asm-diskdk
+brw-rw---- 1 grid asmadmin  8,  96 Jun  5 23:00 /dev/asm-diskg
+brw-rw---- 1 grid asmadmin  8, 112 Jun  5 23:00 /dev/asm-diskh
+brw-rw---- 1 grid asmadmin  8, 128 Jun  5 23:00 /dev/asm-diski
+brw-rw---- 1 grid asmadmin  8, 144 Jun  5 23:00 /dev/asm-diskj
+brw-rw---- 1 grid asmadmin  8, 160 Jun  5 23:00 /dev/asm-diskk
+brw-rw---- 1 grid asmadmin  8, 176 Jun  5 23:00 /dev/asm-diskl
+brw-rw---- 1 grid asmadmin  8, 192 Jun  5 23:00 /dev/asm-diskm
+brw-rw---- 1 grid asmadmin  8, 208 Jun  5 23:00 /dev/asm-diskn
+brw-rw---- 1 grid asmadmin  8, 224 Jun  5 23:00 /dev/asm-disko
+brw-rw---- 1 grid asmadmin  8, 240 Jun  5 23:00 /dev/asm-diskp
+brw-rw---- 1 grid asmadmin 65,   0 Jun  5 23:00 /dev/asm-diskq
+brw-rw---- 1 grid asmadmin 65,  16 Jun  5 23:00 /dev/asm-diskr
+brw-rw---- 1 grid asmadmin 65,  32 Jun  5 23:00 /dev/asm-disks
+brw-rw---- 1 grid asmadmin 65,  48 Jun  5 23:00 /dev/asm-diskt
+brw-rw---- 1 grid asmadmin 65,  64 Jun  5 23:00 /dev/asm-disku
+brw-rw---- 1 grid asmadmin 65,  80 Jun  5 23:00 /dev/asm-diskv
+brw-rw---- 1 grid asmadmin 65,  96 Jun  5 23:00 /dev/asm-diskw
+brw-rw---- 1 grid asmadmin 65, 112 Jun  5 23:00 /dev/asm-diskx
+brw-rw---- 1 grid asmadmin 65, 128 Jun  5 22:59 /dev/asm-disky
+brw-rw---- 1 grid asmadmin 65, 144 Jun  5 23:00 /dev/asm-diskz
+
+	   
+5、修改udev配置文件（双节点执行）
+vi /etc/udev/rules.d/99-oracle-asmdevices.rules
+添加新增磁盘内容
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/", RESULT=="3628a6db100c8435c9c56408e00000272", NAME="asm-diskdl", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/", RESULT=="3628a6db100c8435c9c5640ab00000273", NAME="asm-diskdm", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/", RESULT=="3628a6db100c8435c9c5640d000000274", NAME="asm-diskdn", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/", RESULT=="3628a6db100c8435c9c56419f00000275", NAME="asm-diskdo", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/", RESULT=="3628a6db100c8435c9c5641be00000276", NAME="asm-diskdp", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/", RESULT=="3628a6db100c8435c9c5641dc00000277", NAME="asm-diskdq", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/", RESULT=="3628a6db100c8435c9c5641ff00000278", NAME="asm-diskdr", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/", RESULT=="3628a6db100c8435c9c56422300000279", NAME="asm-diskds", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/", RESULT=="3628a6db100c8435c9c56423f0000027a", NAME="asm-diskdt", OWNER="grid", GROUP="asmadmin", MODE="0660"
+KERNEL=="sd*", BUS=="scsi", PROGRAM=="/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/", RESULT=="3628a6db100c8435c9c56adc50000027b", NAME="asm-diskdu", OWNER="grid", GROUP="asmadmin", MODE="0660"
+
+for i in l m n o p q r s t u
+do
+echo "KERNEL==\"sd*\", BUS==\"scsi\", PROGRAM==\"/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/$name\", RESULT==\"`/sbin/scsi_id --whitelisted --replace-whitespace --device=/dev/sdd$i`\", NAME=\"asm-diskd$i\", OWNER=\"grid\", GROUP=\"asmadmin\", MODE=\"0660\""
+done
+5、重启udev服务（root用户，双节点执行）
+start_udev
+6、检查监听服务（双节点执行）
+su - grid
+lsnrctl status
+如果监听挂了，重启监听
+lsnrctl start
+7、添加磁盘到asm（单节点执行）
+su - grid
+sqlplus / as sysasm
+set linesize 500
+col path for a50
+col name for a20
+select GROUP_NUMBER,NAME,DISK_NUMBER,HEADER_STATUS,STATE,PATH,TOTAL_MB from v$asm_disk;
+GROUP_NUMBER NAME		  DISK_NUMBER HEADER_STATU STATE    PATH						 TOTAL_MB
+------------ -------------------- ----------- ------------ -------- -------------------------------------------------- ----------
+	   0				    0 CANDIDATE    NORMAL   /dev/asm-diskdl							0
+	   0				    1 CANDIDATE    NORMAL   /dev/asm-diskdm							0
+.............
+
+
+新增磁盘是CANDIDATE状态
+
+alter diskgroup data add disk '/dev/asm-diskdl','/dev/asm-diskdm' rebalance power 6;
+

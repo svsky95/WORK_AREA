@@ -1,0 +1,2 @@
+--user_sql_count
+select t."INST_ID",t."USERNAME",t."OSUSER",t."MACHINE",sql_id,count(*) cnt from gv$session t WHERE t."STATUS" = 'ACTIVE' and t.username is not null group by t."INST_ID", t."USERNAME", sql_id, t."OSUSER", t."MACHINE" order by 1, cnt desc;
